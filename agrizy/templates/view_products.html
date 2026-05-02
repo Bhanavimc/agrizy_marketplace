@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ t.my_products }} - {{ t.app_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+    <div class="flex h-screen">
+
+        <!-- Sidebar -->
+        <div class="w-64 bg-green-700 text-white flex flex-col">
+
+            <div class="p-6 text-2xl font-bold border-b border-green-500">
+                🌿 {{ t.app_name }}
+            </div>
+
+            <nav class="flex-1 p-4 space-y-4">
+                <a href="/farmer_dashboard" class="block p-2 rounded hover:bg-green-600">🏠 {{ t.dashboard }}</a>
+                <a href="/add_product" class="block p-2 rounded hover:bg-green-600">➕ {{ t.add_product }}</a>
+                <a href="/view_products" class="block p-2 rounded hover:bg-green-600">📦 {{ t.my_products }}</a>
+                <a href="/sold_products" class="block p-2 rounded hover:bg-green-600">💰 {{ t.sold_products }}</a>
+                <a href="/community" class="block p-2 rounded hover:bg-green-600">🌾 Community</a>
+                <a href="/profile" class="block p-2 rounded hover:bg-green-600">👤 {{ t.profile }}</a>
+            </nav>
+
+            <div class="p-4 border-t border-green-500 space-y-3">
+                <select onchange="window.location='/set_language/'+this.value" class="bg-green-600 text-white border border-green-400 px-2 py-1 rounded text-sm w-full">
+                    <option value="en" {% if current_lang == 'en' %}selected{% endif %}>🇬🇧 English</option>
+                    <option value="hi" {% if current_lang == 'hi' %}selected{% endif %}>🇮🇳 हिन्दी</option>
+                    <option value="kn" {% if current_lang == 'kn' %}selected{% endif %}>🇮🇳 ಕನ್ನಡ</option>
+                </select>
+                <a href="/logout" class="block bg-red-500 text-center p-2 rounded hover:bg-red-600">{{ t.logout }}</a>
+            </div>
+
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-8 overflow-y-auto">
+
+            <h2 class="text-3xl font-bold text-green-700 mb-6">My Products 🌾</h2>
+
+            <!-- Flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, msg in messages %}
+            <p class="mb-4 text-{{ 'green' if category=='success' else 'red' }}">
+                {{ msg }}
+            </p>
+            {% endfor %}
+            {% endwith %}
+
+            <!-- Products Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                {% for p in products %}
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+
+                    <!-- Image -->
+                    <img src="{{ url_for('static', filename='qrcodes/' + p[6]) }}" class="w-full h-48 object-cover">
+
+                    <div class="p-4">
+
+                        <h3 class="text-xl font-bold text-green-700">{{ p[2] }}</h3>
+
+                        <p class="text-gray-600">Available: {{ p[3] }} kg</p>
+                        <p class="text-gray-600">Price: ₹{{ p[4] }}/kg</p>
+
+                        <p class="text-sm mt-2 text-gray-500">
+                            {{ p[5] }}
+                        </p>
+
+                        <!-- Status -->
+                        <p class="mt-2 font-semibold
+                        {% if p[7]=='approved' %} text-green-600
+                        {% elif p[7]=='rejected' %} text-red-600
+                        {% else %} text-yellow-600 {% endif %}">
+                            Status: {{ p[7] }}
+                        </p>
+
+                        <!-- Delete -->
+                        <a href="/delete_product/{{ p[0] }}"
+                            class="block mt-4 bg-red-500 text-white text-center p-2 rounded hover:bg-red-600">
+                            Delete
+                        </a>
+
+                    </div>
+                </div>
+                {% endfor %}
+
+            </div>
+
+            <!-- If no products -->
+            {% if products|length == 0 %}
+            <p class="text-gray-600 mt-10 text-center text-lg">
+                No products added yet 😔
+            </p>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

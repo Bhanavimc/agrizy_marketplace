@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Profile - Agrizy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+    <div class="flex h-screen">
+
+        <!-- 🌿 Sidebar -->
+        <div class="w-64 bg-green-700 text-white flex flex-col">
+
+            <div class="p-6 text-2xl font-bold border-b border-green-500">
+                🌿 {{ t.app_name }}
+            </div>
+
+            <nav class="flex-1 p-4 space-y-4">
+                <a href="/farmer_dashboard" class="block p-2 hover:bg-green-600 rounded">🏠 {{ t.dashboard }}</a>
+                <a href="/add_product" class="block p-2 hover:bg-green-600 rounded">➕ {{ t.add_product }}</a>
+                <a href="/view_products" class="block p-2 hover:bg-green-600 rounded">📦 {{ t.my_products }}</a>
+                <a href="/farmer_sold_products" class="block p-2 hover:bg-green-600 rounded">💰 {{ t.sold_products }}</a>
+                <a href="/community" class="block p-2 hover:bg-green-600 rounded">🌾 Community</a>
+                <a href="/profile" class="block p-2 bg-green-600 rounded">👤 {{ t.profile }}</a>
+            </nav>
+
+            <div class="p-4 space-y-3">
+                <select onchange="window.location='/set_language/'+this.value" class="bg-green-600 text-white border border-green-400 px-2 py-1 rounded text-sm w-full">
+                    <option value="en" {% if current_lang == 'en' %}selected{% endif %}>🇬🇧 English</option>
+                    <option value="hi" {% if current_lang == 'hi' %}selected{% endif %}>🇮🇳 हिन्दी</option>
+                    <option value="kn" {% if current_lang == 'kn' %}selected{% endif %}>🇮🇳 ಕನ್ನಡ</option>
+                </select>
+                <a href="/logout" class="block bg-red-500 text-center p-2 rounded">{{ t.logout }}</a>
+            </div>
+        </div>
+
+        <!-- 🌟 Main Content -->
+        <div class="flex-1 p-8 overflow-y-auto">
+
+            <h1 class="text-3xl font-bold text-green-700 mb-6">👤 My Profile</h1>
+
+            <div class="grid md:grid-cols-2 gap-6">
+
+                <!-- 📄 Details -->
+                <div class="bg-white p-6 rounded-xl shadow">
+
+                    <h2 class="text-xl font-bold mb-4">Account Details</h2>
+
+                    <p><strong>Name:</strong> {{ farmer[0] }}</p>
+                    <p><strong>Email:</strong> {{ farmer[1] }}</p>
+                    <p><strong>Aadhar:</strong> {{ farmer[3] }}</p>
+                    <p><strong>Location:</strong> {{ farmer[4] }}, {{ farmer[5] }}</p>
+                    <p><strong>Pincode:</strong> {{ farmer[6] }}</p>
+
+                </div>
+
+                <!-- ✏️ Update Form -->
+                <div class="bg-white p-6 rounded-xl shadow">
+
+                    <h2 class="text-xl font-bold mb-4">Update Profile</h2>
+
+                    <form action="/update_profile" method="post" enctype="multipart/form-data" class="space-y-4">
+
+                        <input type="text" name="phone" value="{{ farmer[2] }}" class="w-full p-2 border rounded"
+                            placeholder="Phone" required>
+
+                        <input type="password" name="password" class="w-full p-2 border rounded"
+                            placeholder="New Password (optional)">
+
+                        <!-- QR Preview -->
+                        <div>
+                            <p class="mb-2 font-semibold">Current QR:</p>
+                            <img src="{{ url_for('static', filename='qrcodes/' + farmer[7]) }}"
+                                class="w-32 rounded shadow">
+                        </div>
+
+                        <!-- Upload -->
+                        <input type="file" name="qr_image" class="w-full p-2 border rounded">
+
+                        <button class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">
+                            Update Profile
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

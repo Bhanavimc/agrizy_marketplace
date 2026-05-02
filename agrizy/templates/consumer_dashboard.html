@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ t.shop }} - {{ t.app_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+    <!-- 🌿 Navbar -->
+    <div
+        class="bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg p-4 flex justify-between items-center">
+
+        <!-- Logo -->
+        <h1 class="text-2xl font-bold tracking-wide">🌿 {{ t.app_name }}</h1>
+
+        <!-- Links -->
+        <div class="flex items-center gap-6">
+
+            <a href="/consumer_dashboard" class="hover:text-gray-200 font-medium transition">
+                {{ t.shop }}
+            </a>
+
+            <a href="/my_orders" class="hover:text-gray-200 font-medium transition">
+                {{ t.orders }} 📦
+            </a>
+
+            <!-- Cart -->
+            <a href="/cart"
+                class="relative bg-white text-green-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">
+                {{ t.cart }} 🛒
+
+                {% if cart_count > 0 %}
+                <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 rounded-full">
+                    {{ cart_count }}
+                </span>
+                {% endif %}
+            </a>
+
+            <select onchange="window.location='/set_language/'+this.value" class="bg-green-800 text-white border border-green-400 px-2 py-1 rounded text-sm">
+                <option value="en" {% if current_lang == 'en' %}selected{% endif %}>English</option>
+                <option value="hi" {% if current_lang == 'hi' %}selected{% endif %}>हिन्दी</option>
+                <option value="kn" {% if current_lang == 'kn' %}selected{% endif %}>ಕನ್ನಡ</option>
+            </select>
+
+            <!-- Logout -->
+            <a href="/logout" class="bg-red-500 px-3 py-1 rounded-lg hover:bg-red-600 transition">
+                {{ t.logout }}
+            </a>
+
+        </div>
+    </div>
+
+    <!-- 🔍 Filters -->
+    <div class="p-6 bg-white shadow-sm">
+        <form method="get" class="flex flex-wrap gap-4 items-center justify-center">
+
+            <input type="text" name="search" placeholder="🔍 {{ t.search_products }}"
+                class="p-3 border rounded-lg w-72 focus:ring-2 focus:ring-green-400"
+                value="{{ request.args.get('search', '') }}">
+
+            <!-- Category Dropdown -->
+            <select name="category" class="p-3 border rounded-lg focus:ring-2 focus:ring-green-400">
+                <option value="">{{ t.all_categories }}</option>
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if request.args.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="text" name="state" placeholder="{{ t.state }}"
+                class="p-3 border rounded-lg focus:ring-2 focus:ring-green-400"
+                value="{{ request.args.get('state', '') }}">
+
+            <input type="text" name="pincode" placeholder="{{ t.pincode }}"
+                class="p-3 border rounded-lg focus:ring-2 focus:ring-green-400"
+                value="{{ request.args.get('pincode', '') }}">
+
+            <button class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+                {{ t.apply_filter }}
+            </button>
+
+        </form>
+    </div>
+
+    <!-- 🛍 Products -->
+    <div class="p-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+
+        {% for p in products %}
+        <div class="bg-white rounded-2xl shadow hover:shadow-xl transition overflow-hidden">
+
+            <!-- Image -->
+            <div class="overflow-hidden">
+                <img src="{{ url_for('static', filename='qrcodes/' + p[6]) }}"
+                    class="w-full h-52 object-cover hover:scale-105 transition duration-300">
+            </div>
+
+            <div class="p-4">
+
+                <!-- Name -->
+                <h3 class="text-lg font-bold text-green-700 mb-1">
+                    {{ p[2] }}
+                </h3>
+
+                <!-- Category Badge -->
+                {% if p[10] %}
+                <span class="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full mb-2">{{ p[10] if p|length > 12 else '' }}</span>
+                {% endif %}
+
+                <!-- Price per kg -->
+                <p class="text-xl font-semibold text-gray-800 mb-1">
+                    ₹{{ p[4] }}/{{ 'ಕೆಜಿ' if current_lang == 'kn' else 'kg' }}
+                </p>
+
+                <!-- Available weight -->
+                <p class="text-sm font-medium text-green-600 mb-2">
+                    📦 {{ t.available }}: {{ p[3] }} {{ 'ಕೆಜಿ' if current_lang == 'kn' else 'kg' }}
+                </p>
+
+                <!-- Description -->
+                <p class="text-sm text-gray-500 line-clamp-2">
+                    {{ p[5] }}
+                </p>
+
+                <!-- Location -->
+                <p class="text-xs mt-2 text-gray-400">
+                    📍 {{ p[11] }} - {{ p[12] }}
+                </p>
+
+                <!-- Button -->
+                {% if p[0] in cart_product_ids %}
+
+                <button class="block mt-4 bg-gray-400 text-white text-center p-2 rounded-lg cursor-not-allowed w-full">
+                    {{ t.already_in_cart }} ✅
+                </button>
+
+                {% else %}
+
+                <form action="/add_to_cart/{{ p[0] }}" method="POST" class="mt-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <label class="text-sm text-gray-600 font-medium">{{ t.qty_kg }}:</label>
+                        <input type="number" name="quantity" value="1" min="0.5" max="{{ p[3] }}" step="0.5"
+                            class="w-20 p-1 border rounded text-center text-sm focus:ring-2 focus:ring-green-400">
+                    </div>
+                    <button type="submit"
+                        class="block w-full bg-green-600 text-white text-center p-2 rounded-lg hover:bg-green-700 transition">
+                        {{ t.add_to_cart }} 🛒
+                    </button>
+                </form>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+        {% endfor %}
+
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ t.dashboard }} - {{ t.app_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+<div class="flex h-screen">
+
+    <!-- Sidebar -->
+    <div class="w-64 bg-green-700 text-white flex flex-col flex-shrink-0">
+        <div class="p-6 text-2xl font-bold border-b border-green-500">🌿 {{ t.app_name }}</div>
+        <nav class="flex-1 p-4 space-y-4">
+            <a href="/farmer_dashboard" class="block p-2 rounded hover:bg-green-600">🏠 {{ t.dashboard }}</a>
+            <a href="/add_product" class="block p-2 rounded hover:bg-green-600">➕ {{ t.add_product }}</a>
+            <a href="/view_products" class="block p-2 rounded hover:bg-green-600">📦 {{ t.my_products }}</a>
+            <a href="/sold_products" class="block p-2 rounded hover:bg-green-600">💰 {{ t.sold_products }}</a>
+            <a href="/profile" class="block p-2 rounded hover:bg-green-600">👤 {{ t.profile }}</a>
+            <a href="/community" class="block p-2 rounded hover:bg-green-600">👥 {{t.community}}</a>
+        </nav>
+        <!-- Language Dropdown -->
+        <div class="p-4 border-t border-green-500">
+            <select onchange="window.location.href='/set_language/'+this.value" class="w-full p-2 rounded bg-green-600 text-white border border-green-400">
+                <option value="en" {% if session.get('lang','en')=='en' %}selected{% endif %}>English</option>
+                <option value="kn" {% if session.get('lang')=='kn' %}selected{% endif %}>ಕನ್ನಡ</option>
+                <option value="hi" {% if session.get('lang')=='hi' %}selected{% endif %}>हिंदी</option>
+            </select>
+        </div>
+        <div class="p-4 border-t border-green-500">
+            <a href="/logout" class="block bg-red-500 text-center p-2 rounded hover:bg-red-600">{{ t.logout }}</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+        <!-- Top Header Bar -->
+        <div class="bg-white shadow px-8 py-4 flex justify-between items-center flex-shrink-0">
+            <h1 class="text-2xl font-bold text-green-700">{{ t.welcome_farmer }} 👨‍🌾</h1>
+            <div class="text-sm text-gray-500">{{ farmer_city }}, {{ farmer_state }}</div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white border-b px-8 flex gap-1 flex-shrink-0 overflow-x-auto">
+            <button onclick="showTab('crops')" id="tab-crops" class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-green-600 text-green-700">🌾 {{ t.live_crop_prices }}</button>
+            <button onclick="showTab('weather')" id="tab-weather" class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-green-600">☔ {{ t.weather_forecast }}</button>
+            <button onclick="showTab('soil')" id="tab-soil" class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-green-600">🌎 {{ t.soil_analysis }}</button>
+            <button onclick="showTab('schemes')" id="tab-schemes" class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-green-600">📋 {{ t.govt_schemes }}</button>
+            <button onclick="showTab('organic')" id="tab-organic" class="tab-btn px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-green-600">🌿 {{ t.organic_farming }}</button>
+        </div>
+
+        <!-- Scrollable Tab Content -->
+        <div class="flex-1 overflow-y-auto p-8">
+
+            <!-- TAB 1: Crop Prices -->
+            <div id="panel-crops" class="tab-panel">
+                <div class="bg-white p-4 rounded-xl shadow mb-6">
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <input type="text" id="cropSearch" placeholder="🔍 {{ t.search_crops }}" class="p-2 border rounded-lg w-60 focus:ring-2 focus:ring-green-400" oninput="filterCrops()">
+                        <select id="stateFilter" class="p-2 border rounded-lg focus:ring-2 focus:ring-green-400" onchange="filterCrops()">
+                            <option value="">{{ t.all_states }}</option>
+                        </select>
+                        <select id="marketFilter" class="p-2 border rounded-lg focus:ring-2 focus:ring-green-400" onchange="filterCrops()">
+                            <option value="">{{ t.all_markets }}</option>
+                        </select>
+                        <button onclick="resetFilters()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 text-sm">↻ Reset</button>
+                    </div>
+                </div>
+                <div id="cropContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+                <p id="noCropsMsg" class="hidden text-center text-gray-500 mt-8 text-lg">{{ t.no_crops_found }}</p>
+            </div>
+
+            <!-- TAB 2: Weather Forecast -->
+            <div id="panel-weather" class="tab-panel hidden">
+                <div class="max-w-4xl mx-auto">
+                    <!-- Location Input -->
+                    <div class="bg-white rounded-xl shadow p-6 mb-6">
+                        <h3 class="text-lg font-bold text-green-700 mb-4">{{ t.enter_location }}</h3>
+                        <div class="flex gap-3">
+                            <input type="text" id="weatherCity" value="{{ farmer_city }}" placeholder="{{ t.enter_location }}" class="flex-1 p-3 border-2 rounded-lg focus:border-green-500 outline-none">
+                            <button onclick="loadWeather()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-semibold">{{ t.get_weather }}</button>
+                        </div>
+                    </div>
+                    <!-- Current Weather Card -->
+                    <div id="weatherCurrent" class="hidden bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-xl shadow-lg p-8 mb-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h2 id="wCity" class="text-3xl font-bold mb-2"></h2>
+                                <p id="wTemp" class="text-6xl font-light mb-2"></p>
+                                <p id="wCondition" class="text-xl opacity-90"></p>
+                            </div>
+                            <div class="text-right space-y-2">
+                                <p id="wFeelsLike" class="text-lg opacity-80"></p>
+                                <p id="wHumidity" class="text-lg opacity-80"></p>
+                                <p id="wWind" class="text-lg opacity-80"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Advisory -->
+                    <div id="weatherAdvisory" class="hidden bg-yellow-50 border-l-4 border-yellow-400 rounded-xl p-5 mb-6">
+                        <h4 class="font-bold text-yellow-800 mb-2">🌱 {{ t.weather_advisory }}</h4>
+                        <p id="wAdvisory" class="text-yellow-700"></p>
+                    </div>
+                    <!-- 5 Day Forecast -->
+                    <div id="weatherForecast" class="hidden">
+                        <h3 class="text-lg font-bold text-green-700 mb-4">{{ t.forecast_5day }}</h3>
+                        <div id="forecastGrid" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Soil Analysis -->
+            <div id="panel-soil" class="tab-panel hidden">
+                <div class="max-w-5xl mx-auto">
+                    <h3 class="text-lg font-bold text-green-700 mb-4">{{ t.select_soil }}</h3>
+                    <div class="flex flex-wrap gap-3 mb-8">
+                        <button onclick="selectSoil('alluvial')" class="soil-btn px-5 py-3 rounded-full border-2 border-green-300 hover:bg-green-100 font-medium text-sm transition">🌋 Alluvial</button>
+                        <button onclick="selectSoil('black')" class="soil-btn px-5 py-3 rounded-full border-2 border-green-300 hover:bg-green-100 font-medium text-sm transition">⬛ Black</button>
+                        <button onclick="selectSoil('red')" class="soil-btn px-5 py-3 rounded-full border-2 border-green-300 hover:bg-green-100 font-medium text-sm transition">🔴 Red</button>
+                        <button onclick="selectSoil('laterite')" class="soil-btn px-5 py-3 rounded-full border-2 border-green-300 hover:bg-green-100 font-medium text-sm transition">🟧 Laterite</button>
+                        <button onclick="selectSoil('sandy')" class="soil-btn px-5 py-3 rounded-full border-2 border-green-300 hover:bg-green-100 font-medium text-sm transition">🏖 Sandy</button>
+                        <button onclick="selectSoil('clay')" class="soil-btn px-5 py-3 rounded-full border-2 border-green-300 hover:bg-green-100 font-medium text-sm transition">🥇 Clay</button>
+                        <button onclick="selectSoil('loamy')" class="soil-btn px-5 py-3 rounded-full border-2 border-green-300 hover:bg-green-100 font-medium text-sm transition">🌱 Loamy</button>
+                    </div>
+                    <div id="soilResult" class="hidden">
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-white rounded-xl shadow p-6">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div id="soilColorDot" class="w-8 h-8 rounded-full"></div>
+                                    <h3 id="soilName" class="text-xl font-bold text-green-800"></h3>
+                                </div>
+                                <p id="soilDesc" class="text-gray-600 mb-4"></p>
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <span class="text-sm font-semibold text-gray-500">pH Range:</span>
+                                    <span id="soilPH" class="ml-2 font-bold text-green-700"></span>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl shadow p-6">
+                                <h4 class="text-lg font-bold text-green-700 mb-3">{{ t.recommended_crops }}</h4>
+                                <div id="soilCrops" class="flex flex-wrap gap-2 mb-4"></div>
+                                <h4 class="text-lg font-bold text-green-700 mb-2">{{ t.soil_tips }}</h4>
+                                <p id="soilTips" class="text-gray-600 text-sm"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: Government Schemes -->
+            <div id="panel-schemes" class="tab-panel hidden">
+                <div class="max-w-5xl mx-auto">
+                    <div id="schemesContainer" class="grid md:grid-cols-2 gap-6"></div>
+                    <p id="schemesLoading" class="text-center text-gray-400 py-12">Loading schemes...</p>
+                </div>
+            </div>
+
+            <!-- TAB 5: Organic Farming -->
+            <div id="panel-organic" class="tab-panel hidden">
+                <div class="max-w-5xl mx-auto space-y-8">
+                    <!-- Benefits Banner -->
+                    <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-8">
+                        <h2 class="text-2xl font-bold mb-3">🌿 {{ t.benefits_of_organic }}</h2>
+                        <div class="grid md:grid-cols-3 gap-4 mt-4">
+                            <div class="bg-white/20 rounded-lg p-4">
+                                <div class="text-3xl mb-2">🧁</div>
+                                <h4 class="font-bold">Healthier Produce</h4>
+                                <p class="text-sm opacity-90">No chemical residues, higher nutrition</p>
+                            </div>
+                            <div class="bg-white/20 rounded-lg p-4">
+                                <div class="text-3xl mb-2">🌎</div>
+                                <h4 class="font-bold">Eco Friendly</h4>
+                                <p class="text-sm opacity-90">Better soil health, saves water</p>
+                            </div>
+                            <div class="bg-white/20 rounded-lg p-4">
+                                <div class="text-3xl mb-2">💰</div>
+                                <h4 class="font-bold">Premium Prices</h4>
+                                <p class="text-sm opacity-90">20-30% higher market rates</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Composting Guide -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="text-xl font-bold text-green-700 mb-4">♻️ {{ t.composting_guide }}</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <h4 class="font-bold text-green-800 mb-2">Vermicomposting</h4>
+                                <ul class="text-sm text-gray-600 space-y-1">
+                                    <li>• Use red wiggler earthworms</li>
+                                    <li>• Layer: dry leaves + kitchen waste + cow dung</li>
+                                    <li>• Keep moist, avoid direct sunlight</li>
+                                    <li>• Ready in 45-60 days</li>
+                                </ul>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <h4 class="font-bold text-green-800 mb-2">NADEP Composting</h4>
+                                <ul class="text-sm text-gray-600 space-y-1">
+                                    <li>• Build brick tank (10x5x3 ft)</li>
+                                    <li>• Layer farm waste + cow dung + soil</li>
+                                    <li>• Plaster with mud to seal</li>
+                                    <li>• Ready in 90-120 days</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Natural Pest Control -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="text-xl font-bold text-green-700 mb-4">🐛 {{ t.natural_pest_control }}</h3>
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-bold text-gray-800 mb-2">🍆 Neem Spray</h4>
+                                <p class="text-sm text-gray-600">Crush neem leaves, soak in water overnight, strain and spray. Controls aphids, whiteflies, caterpillars.</p>
+                            </div>
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-bold text-gray-800 mb-2">🌶 Garlic-Chili Spray</h4>
+                                <p class="text-sm text-gray-600">Blend garlic + green chilies + water. Strain and spray. Repels most sucking insects.</p>
+                            </div>
+                            <div class="border rounded-lg p-4">
+                                <h4 class="font-bold text-gray-800 mb-2">🐝 Pheromone Traps</h4>
+                                <p class="text-sm text-gray-600">Place in fields to attract and trap male moths. Reduces pest population naturally.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Organic Fertilizers -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="text-xl font-bold text-green-700 mb-4">🌱 {{ t.organic_fertilizers }}</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="bg-amber-50 rounded-lg p-4">
+                                <h4 class="font-bold text-amber-800 mb-2">Jeevamrutha</h4>
+                                <p class="text-sm text-gray-600">10kg cow dung + 10L cow urine + 2kg jaggery + 2kg pulse flour + handful of soil in 200L water. Ferment 48 hrs.</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-4">
+                                <h4 class="font-bold text-amber-800 mb-2">Panchagavya</h4>
+                                <p class="text-sm text-gray-600">Cow dung, urine, milk, curd, ghee. Mix and ferment for 15 days. 3% solution as foliar spray.</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-4">
+                                <h4 class="font-bold text-amber-800 mb-2">Fish Amino Acid</h4>
+                                <p class="text-sm text-gray-600">Fish waste + jaggery (1:1). Ferment 15-20 days. Rich in nitrogen and growth hormones.</p>
+                            </div>
+                            <div class="bg-amber-50 rounded-lg p-4">
+                                <h4 class="font-bold text-amber-800 mb-2">Green Manure</h4>
+                                <p class="text-sm text-gray-600">Grow dhaincha, sunhemp, or cowpea and plough back into soil before flowering. Adds nitrogen.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crop Rotation -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="text-xl font-bold text-green-700 mb-4">🔄 {{ t.crop_rotation }}</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-green-50">
+                                    <tr>
+                                        <th class="p-3 text-left text-green-800">Season</th>
+                                        <th class="p-3 text-left text-green-800">Main Crop</th>
+                                        <th class="p-3 text-left text-green-800">Intercrop</th>
+                                        <th class="p-3 text-left text-green-800">Benefit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b"><td class="p-3">Kharif (Jun-Oct)</td><td class="p-3">Rice / Maize</td><td class="p-3">Pulses</td><td class="p-3">Nitrogen fixation</td></tr>
+                                    <tr class="border-b"><td class="p-3">Rabi (Nov-Mar)</td><td class="p-3">Wheat / Mustard</td><td class="p-3">Chickpea</td><td class="p-3">Soil structure</td></tr>
+                                    <tr class="border-b"><td class="p-3">Zaid (Apr-Jun)</td><td class="p-3">Moong / Cucumber</td><td class="p-3">Sunflower</td><td class="p-3">Pest break cycle</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Certification -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="text-xl font-bold text-green-700 mb-4">📄 {{ t.certification }}</h3>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="font-bold text-gray-800 mb-2">PGS-India (Free)</h4>
+                                <ul class="text-sm text-gray-600 space-y-1">
+                                    <li>• Group of min 5 farmers</li>
+                                    <li>• Peer inspection system</li>
+                                    <li>• No fee, govt supported</li>
+                                    <li>• Apply at pgsindia-ncof.gov.in</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 mb-2">NPOP / Third Party</h4>
+                                <ul class="text-sm text-gray-600 space-y-1">
+                                    <li>• 3-year conversion period</li>
+                                    <li>• Annual inspection by certified body</li>
+                                    <li>• Enables export to EU, US markets</li>
+                                    <li>• Agencies: APEDA accredited</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- end scrollable -->
+    </div><!-- end main -->
+</div><!-- end flex -->
+
+<!-- Chatbot Floating Button -->
+<div id="chatbot-toggle" onclick="toggleChat()" style="position:fixed;bottom:30px;right:30px;width:60px;height:60px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,0.3);z-index:1000;transition:transform 0.3s;animation:pulse 2s infinite;">
+    <span style="font-size:28px;">🤖</span>
+</div>
+<style>@keyframes pulse{0%,100%{box-shadow:0 4px 15px rgba(0,0,0,0.3)}50%{box-shadow:0 4px 25px rgba(22,163,74,0.6)}}</style>
+
+<!-- Chatbot Window -->
+<div id="chatbot-window" style="display:none;position:fixed;bottom:100px;right:30px;width:420px;height:600px;background:white;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.2);z-index:1000;flex-direction:column;overflow:hidden;">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#16a34a,#15803d);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">🌿</span>
+            <div>
+                <div style="color:white;font-weight:bold;font-size:15px;">Agrizy Crop Assistant</div>
+                <div style="color:#bbf7d0;font-size:11px;">● Online — Ask me about crops!</div>
+            </div>
+        </div>
+        <button onclick="toggleChat()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <!-- Toll-free Banner -->
+    <div style="background:linear-gradient(90deg,#065f46,#047857);padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <span style="font-size:16px;">📞</span>
+        <span style="color:#d1fae5;font-size:12px;font-weight:600;">Kisan Helpline (Toll-Free, 24x7):</span>
+        <a href="tel:18001801551" style="color:#fbbf24;font-weight:bold;font-size:14px;text-decoration:none;">1800-180-1551</a>
+    </div>
+    <!-- Messages -->
+    <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#f0fdf4;">
+        <div style="display:flex;gap:8px;">
+            <div style="width:32px;height:32px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🌿</div>
+            <div style="background:white;padding:12px 16px;border-radius:0 12px 12px 12px;max-width:85%;box-shadow:0 1px 3px rgba(0,0,0,0.1);font-size:13px;line-height:1.6;">
+                Hello! 👨‍🌾 I'm your <b>Agrizy Crop Assistant</b>.<br><br>
+                🌾 <b>Crop info</b> — Rice, Wheat, Ragi, Coconut &amp; more<br>
+                🦠 <b>Disease diagnosis</b> — Describe symptoms or 📷 upload photos<br>
+                💰 <b>MSP prices</b> — Current minimum support prices<br>
+                📋 <b>Govt schemes</b> — PM-KISAN, PMFBY, KCC<br>
+                📞 <b>Helplines</b> — Toll-free farmer numbers<br><br>
+                Try the quick buttons below or type your question!
+            </div>
+        </div>
+        <!-- Quick Action Buttons -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;">
+            <button onclick="quickAsk('Tell me about rice')" style="background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:#166534;font-weight:500;">🌾 Rice Info</button>
+            <button onclick="quickAsk('MSP prices')" style="background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:#166534;font-weight:500;">💰 MSP Prices</button>
+            <button onclick="quickAsk('helpline numbers')" style="background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:#166534;font-weight:500;">📞 Helplines</button>
+            <button onclick="quickAsk('government schemes')" style="background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:#166534;font-weight:500;">📋 Schemes</button>
+            <button onclick="quickAsk('My leaves have yellow spots')" style="background:#fef3c7;border:1px solid #fcd34d;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:#92400e;font-weight:500;">🦠 Disease Help</button>
+            <button onclick="quickAsk('organic farming tips')" style="background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:#166534;font-weight:500;">🌿 Organic Tips</button>
+            <button onclick="quickAsk('pest control')" style="background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:#166534;font-weight:500;">🐛 Pest Control</button>
+            <button onclick="quickAsk('drip irrigation')" style="background:#dcfce7;border:1px solid #86efac;border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:#166534;font-weight:500;">💧 Drip Irrigation</button>
+        </div>
+    </div>
+    <!-- Image Preview -->
+    <div id="image-preview" style="display:none;padding:8px 16px;background:#f0fdf4;border-top:1px solid #dcfce7;">
+        <div style="display:flex;align-items:center;gap:8px;background:white;padding:8px;border-radius:8px;">
+            <img id="preview-img" src="" style="width:50px;height:50px;object-fit:cover;border-radius:6px;">
+            <span style="flex:1;font-size:13px;color:#374151;">Image attached</span>
+            <button onclick="removeImage()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;">✕</button>
+        </div>
+    </div>
+    <!-- Input -->
+    <div style="padding:10px 14px;background:white;border-top:1px solid #e5e7eb;display:flex;gap:6px;align-items:center;">
+        <input type="file" id="image-upload" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+        <button onclick="document.getElementById('image-upload').click()" style="background:none;border:2px solid #16a34a;border-radius:8px;padding:7px;cursor:pointer;color:#16a34a;font-size:16px;flex-shrink:0;" title="Upload plant photo">📷</button>
+        <input type="text" id="chat-input" placeholder="Ask about crops, diseases, schemes..." onkeypress="if(event.key==='Enter')sendMessage()" style="flex:1;padding:9px 12px;border:2px solid #e5e7eb;border-radius:10px;outline:none;font-size:13px;" onfocus="this.style.borderColor='#16a34a'" onblur="this.style.borderColor='#e5e7eb'">
+        <button onclick="sendMessage()" style="background:#16a34a;border:none;border-radius:8px;padding:7px 12px;cursor:pointer;color:white;font-size:16px;flex-shrink:0;">➤</button>
+    </div>
+</div>
+
+<script>
+// ===== TAB SWITCHING =====
+function showTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.add('hidden'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b) {
+        b.classList.remove('border-green-600','text-green-700');
+        b.classList.add('border-transparent','text-gray-500');
+    });
+    document.getElementById('panel-' + name).classList.remove('hidden');
+    var btn = document.getElementById('tab-' + name);
+    btn.classList.add('border-green-600','text-green-700');
+    btn.classList.remove('border-transparent','text-gray-500');
+
+    if (name === 'schemes' && !schemesLoaded) loadSchemes();
+    if (name === 'weather' && !weatherLoaded) loadWeather();
+}
+
+// ===== CROP PRICES =====
+var allCrops = [];
+
+async function loadCropPrices() {
+    try {
+        var res = await fetch('/get_crop_prices');
+        var data = await res.json();
+        allCrops = data;
+
+        var states = [...new Set(data.map(function(c) { return c.state; }).filter(Boolean))].sort();
+        var markets = [...new Set(data.map(function(c) { return c.market; }).filter(Boolean))].sort();
+
+        var stateSelect = document.getElementById('stateFilter');
+        states.forEach(function(s) { var o = document.createElement('option'); o.value = s; o.textContent = s; stateSelect.appendChild(o); });
+
+        var marketSelect = document.getElementById('marketFilter');
+        markets.forEach(function(m) { var o = document.createElement('option'); o.value = m; o.textContent = m; marketSelect.appendChild(o); });
+
+        renderCrops(data);
+    } catch(e) { console.error('Crop prices error:', e); }
+}
+
+function filterCrops() {
+    var search = document.getElementById('cropSearch').value.toLowerCase();
+    var state = document.getElementById('stateFilter').value;
+    var market = document.getElementById('marketFilter').value;
+    var filtered = allCrops.filter(function(crop) {
+        var match = true;
+        if (search) match = match && crop.name.toLowerCase().includes(search);
+        if (state) match = match && crop.state === state;
+        if (market) match = match && crop.market === market;
+        return match;
+    });
+    renderCrops(filtered);
+}
+
+function resetFilters() {
+    document.getElementById('cropSearch').value = '';
+    document.getElementById('stateFilter').value = '';
+    document.getElementById('marketFilter').value = '';
+    renderCrops(allCrops);
+}
+
+function renderCrops(crops) {
+    var container = document.getElementById('cropContainer');
+    var noMsg = document.getElementById('noCropsMsg');
+    container.innerHTML = '';
+    if (crops.length === 0) { noMsg.classList.remove('hidden'); return; }
+    noMsg.classList.add('hidden');
+    crops.forEach(function(crop) {
+        var card = document.createElement('div');
+        card.className = 'bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden';
+        card.innerHTML = '<img src="' + crop.image + '" alt="' + crop.name + '" class="w-full h-40 object-cover" onerror="this.src=\'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=400&h=300&fit=crop\'">' +
+            '<div class="p-5">' +
+            '<h3 class="text-xl font-bold text-green-700">' + crop.name + '</h3>' +
+            '<p class="text-gray-600 mt-2">💰 ₹' + crop.price + '/quintal</p>' +
+            '<p class="text-gray-500 text-sm mt-1">📍 ' + crop.market + ', ' + crop.state + '</p>' +
+            '</div>';
+        container.appendChild(card);
+    });
+}
+
+// ===== WEATHER =====
+var weatherLoaded = false;
+
+async function loadWeather() {
+    var city = document.getElementById('weatherCity').value.trim();
+    if (!city) return;
+    try {
+        var res = await fetch('/api/weather?city=' + encodeURIComponent(city));
+        var d = await res.json();
+        weatherLoaded = true;
+
+        document.getElementById('wCity').textContent = d.city;
+        document.getElementById('wTemp').textContent = Math.round(d.temperature) + '\u00B0C';
+        document.getElementById('wCondition').textContent = d.condition;
+        document.getElementById('wFeelsLike').textContent = '{{ t.feels_like }}: ' + Math.round(d.feels_like) + '\u00B0C';
+        document.getElementById('wHumidity').textContent = '{{ t.humidity }}: ' + d.humidity + '%';
+        document.getElementById('wWind').textContent = '{{ t.wind_speed }}: ' + d.wind_speed + ' m/s';
+        document.getElementById('weatherCurrent').classList.remove('hidden');
+
+        if (d.advisory) {
+            document.getElementById('wAdvisory').textContent = d.advisory;
+            document.getElementById('weatherAdvisory').classList.remove('hidden');
+        }
+
+        if (d.forecast && d.forecast.length) {
+            var grid = document.getElementById('forecastGrid');
+            grid.innerHTML = '';
+            d.forecast.forEach(function(f) {
+                var div = document.createElement('div');
+                div.className = 'bg-white rounded-xl shadow p-4 text-center';
+                div.innerHTML = '<p class="font-bold text-gray-700 text-sm">' + f.day + '</p>' +
+                    '<p class="text-2xl my-2">' + (f.icon || '⛅') + '</p>' +
+                    '<p class="text-green-700 font-bold">' + f.temp_max + '\u00B0 / ' + f.temp_min + '\u00B0</p>' +
+                    '<p class="text-gray-500 text-xs mt-1">' + f.condition + '</p>';
+                grid.appendChild(div);
+            });
+            document.getElementById('weatherForecast').classList.remove('hidden');
+        }
+    } catch(e) { console.error('Weather error:', e); }
+}
+
+// ===== SOIL ANALYSIS =====
+async function selectSoil(type) {
+    document.querySelectorAll('.soil-btn').forEach(function(b) {
+        b.classList.remove('bg-green-600','text-white');
+    });
+    event.target.classList.add('bg-green-600','text-white');
+    try {
+        var res = await fetch('/api/soil_analysis?type=' + type);
+        var d = await res.json();
+        document.getElementById('soilName').textContent = d.name;
+        document.getElementById('soilDesc').textContent = d.description;
+        document.getElementById('soilPH').textContent = d.ph;
+        document.getElementById('soilTips').textContent = d.tips;
+        document.getElementById('soilColorDot').style.backgroundColor = d.color;
+
+        var cropsDiv = document.getElementById('soilCrops');
+        cropsDiv.innerHTML = '';
+        d.crops.forEach(function(c) {
+            var span = document.createElement('span');
+            span.className = 'bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium';
+            span.textContent = c;
+            cropsDiv.appendChild(span);
+        });
+
+        document.getElementById('soilResult').classList.remove('hidden');
+    } catch(e) { console.error('Soil error:', e); }
+}
+
+// ===== GOVERNMENT SCHEMES =====
+var schemesLoaded = false;
+
+async function loadSchemes() {
+    try {
+        var res = await fetch('/api/schemes');
+        var schemes = await res.json();
+        schemesLoaded = true;
+
+        var container = document.getElementById('schemesContainer');
+        container.innerHTML = '';
+        document.getElementById('schemesLoading').classList.add('hidden');
+
+        schemes.forEach(function(s) {
+            var card = document.createElement('div');
+            card.className = 'bg-white rounded-xl shadow hover:shadow-lg transition p-6';
+            card.innerHTML = '<div class="flex items-center gap-3 mb-3">' +
+                '<span class="text-3xl">' + s.icon + '</span>' +
+                '<h3 class="text-lg font-bold text-green-800">' + s.name + '</h3>' +
+                '</div>' +
+                '<div class="space-y-2 text-sm">' +
+                '<div><span class="font-semibold text-gray-700">{{ t.benefit }}:</span> <span class="text-gray-600">' + s.benefit + '</span></div>' +
+                '<div><span class="font-semibold text-gray-700">{{ t.eligibility }}:</span> <span class="text-gray-600">' + s.eligibility + '</span></div>' +
+                '<div><span class="font-semibold text-gray-700">{{ t.how_to_apply }}:</span> <span class="text-gray-600">' + s.how_to_apply + '</span></div>' +
+                '</div>';
+            container.appendChild(card);
+        });
+    } catch(e) { console.error('Schemes error:', e); }
+}
+
+// ===== CHATBOT =====
+var chatOpen = false;
+var uploadedImage = null;
+
+function toggleChat() {
+    chatOpen = !chatOpen;
+    var win = document.getElementById('chatbot-window');
+    var toggle = document.getElementById('chatbot-toggle');
+    if (chatOpen) {
+        win.style.display = 'flex';
+        toggle.style.transform = 'scale(0)';
+        document.getElementById('chat-input').focus();
+    } else {
+        win.style.display = 'none';
+        toggle.style.transform = 'scale(1)';
+    }
+}
+
+function handleImageUpload(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        uploadedImage = e.target.result;
+        document.getElementById('preview-img').src = uploadedImage;
+        document.getElementById('image-preview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeImage() {
+    uploadedImage = null;
+    document.getElementById('image-preview').style.display = 'none';
+    document.getElementById('image-upload').value = '';
+}
+
+function addMessage(text, isUser) {
+    var container = document.getElementById('chat-messages');
+    if (isUser) {
+        var div = document.createElement('div');
+        div.style.cssText = 'display:flex;justify-content:flex-end;';
+        div.innerHTML = '<div style="background:#16a34a;color:white;padding:12px 16px;border-radius:12px 0 12px 12px;max-width:85%;font-size:14px;line-height:1.5;">' + escapeHtml(text) + '</div>';
+        container.appendChild(div);
+    } else {
+        var div = document.createElement('div');
+        div.style.cssText = 'display:flex;gap:8px;';
+        var formatted = text
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+            .replace(/\*(.*?)\*/g, '<i>$1</i>')
+            .replace(/\n/g, '<br>')
+            .replace(/\u2022 /g, '• ');
+        div.innerHTML = '<div style="width:32px;height:32px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🌿</div>' +
+            '<div style="background:white;padding:12px 16px;border-radius:0 12px 12px 12px;max-width:85%;box-shadow:0 1px 3px rgba(0,0,0,0.1);font-size:14px;line-height:1.5;">' + formatted + '</div>';
+        container.appendChild(div);
+    }
+    container.scrollTop = container.scrollHeight;
+}
+
+function addImageMessage(imgSrc) {
+    var container = document.getElementById('chat-messages');
+    var div = document.createElement('div');
+    div.style.cssText = 'display:flex;justify-content:flex-end;';
+    div.innerHTML = '<div style="background:#16a34a;padding:8px;border-radius:12px 0 12px 12px;max-width:85%;"><img src="' + imgSrc + '" style="max-width:200px;max-height:200px;border-radius:8px;display:block;"><div style="color:white;font-size:12px;margin-top:4px;text-align:center;">📷 Plant photo uploaded</div></div>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function showTyping() {
+    var container = document.getElementById('chat-messages');
+    var div = document.createElement('div');
+    div.id = 'typing-indicator';
+    div.style.cssText = 'display:flex;gap:8px;';
+    div.innerHTML = '<div style="width:32px;height:32px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🌿</div>' +
+        '<div style="background:white;padding:12px 16px;border-radius:0 12px 12px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);font-size:14px;color:#9ca3af;">Analyzing... ⌛</div>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+    var el = document.getElementById('typing-indicator');
+    if (el) el.remove();
+}
+
+function escapeHtml(text) {
+    var d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+function quickAsk(text) {
+    document.getElementById('chat-input').value = text;
+    sendMessage();
+}
+
+async function sendMessage() {
+    var input = document.getElementById('chat-input');
+    var message = input.value.trim();
+    if (!message && !uploadedImage) return;
+
+    if (message) addMessage(message, true);
+    if (uploadedImage) addImageMessage(uploadedImage);
+
+    var payload = {};
+    if (uploadedImage) {
+        payload.image = uploadedImage;
+        payload.description = message || '';
+    } else {
+        payload.message = message;
+    }
+
+    input.value = '';
+    removeImage();
+    showTyping();
+
+    try {
+        var res = await fetch('/chatbot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        var data = await res.json();
+        removeTyping();
+        addMessage(data.response, false);
+    } catch (err) {
+        removeTyping();
+        addMessage('Sorry, something went wrong. Please try again.', false);
+    }
+}
+
+// Load crops on page load
+loadCropPrices();
+</script>
+</body>
+</html>

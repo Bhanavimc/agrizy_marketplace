@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Cart - Agrizy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+    <!-- Navbar -->
+    <div class="bg-green-600 text-white p-4 flex justify-between">
+        <h1 class="text-xl font-bold">🌿 {{ t.app_name }}</h1>
+
+        <div class="flex items-center space-x-4">
+            <a href="/retailer_dashboard">{{ t.shop }}</a>
+
+            <a href="/my_orders"> {{ t.orders }} 📦</a>
+            <a href="/cart"
+                class="relative bg-white text-green-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">{{ t.cart }}
+                🛒</a>
+            <select onchange="window.location='/set_language/'+this.value" class="bg-green-800 text-white border border-green-400 px-2 py-1 rounded text-sm">
+                <option value="en" {% if current_lang == 'en' %}selected{% endif %}>English</option>
+                <option value="hi" {% if current_lang == 'hi' %}selected{% endif %}>हिन्दी</option>
+                <option value="kn" {% if current_lang == 'kn' %}selected{% endif %}>ಕನ್ನಡ</option>
+            </select>
+            <a href="/logout" class="bg-red-500 px-3 py-1 rounded">{{ t.logout }}</a>
+        </div>
+    </div>
+
+    <div class="p-6 max-w-6xl mx-auto">
+
+        <h2 class="text-2xl font-bold mb-6">Your Cart 🛒</h2>
+
+        {% if items|length > 0 %}
+
+        {% set ns = namespace(grand_total=0) %}
+
+        <table class="w-full bg-white shadow-md rounded overflow-hidden">
+
+            <tr class="bg-green-600 text-white">
+                <th class="p-3">Product</th>
+                <th>Price/kg</th>
+                <th>Quantity (kg)</th>
+                <th>Total</th>
+                <th>Action</th>
+            </tr>
+
+            {% for i in items %}
+            {% set total = i[2] * i[4] %}
+            {% set ns.grand_total = ns.grand_total + total %}
+
+            <tr class="text-center border-b">
+
+                <td class="p-3">{{ i[1] }}</td>
+
+                <td>₹{{ i[2] }}/kg</td>
+
+                <!-- Quantity -->
+                <td>
+                    <div class="flex justify-center items-center gap-2">
+                        <span>{{ i[4] }} kg</span>
+                    </div>
+                </td>
+
+                <!-- Row Total -->
+                <td>₹{{ total }}</td>
+
+                <!-- Remove -->
+                <td>
+                    <a href="/remove_item/{{ i[0] }}" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                        Remove
+                    </a>
+                </td>
+
+            </tr>
+            {% endfor %}
+
+        </table>
+
+        <!-- Total -->
+        <div class="mt-6 flex justify-between items-center bg-white p-4 rounded shadow">
+
+            <h3 class="text-xl font-bold">
+                Total: ₹{{ ns.grand_total }}
+            </h3>
+
+            <a href="/checkout" class="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700">
+                Proceed to Buy 💳
+            </a>
+
+        </div>
+
+        {% else %}
+
+        <div class="text-center mt-20">
+            <p class="text-gray-600 text-lg">Your cart is empty 😔</p>
+            <a href="/consumer_dashboard" class="mt-4 inline-block bg-green-600 text-white px-6 py-2 rounded">
+                Start Shopping
+            </a>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Farmer Community - {{ t.app_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active { border-bottom: 3px solid #15803d; color: #15803d; font-weight: 600; }
+        .post-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .like-btn.liked { color: #ef4444; }
+        .like-btn.liked svg { fill: #ef4444; }
+        .comment-section { max-height: 300px; overflow-y: auto; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+
+        <!-- Sidebar -->
+        <div class="w-64 bg-green-700 text-white flex flex-col flex-shrink-0">
+            <div class="p-6 text-2xl font-bold border-b border-green-500">🌿 {{ t.app_name }}</div>
+            <nav class="flex-1 p-4 space-y-4">
+                <a href="/farmer_dashboard" class="block p-2 rounded hover:bg-green-600">🏠 {{ t.dashboard }}</a>
+                <a href="/add_product" class="block p-2 rounded hover:bg-green-600">➕ {{ t.add_product }}</a>
+                <a href="/view_products" class="block p-2 rounded hover:bg-green-600">📦 {{ t.my_products }}</a>
+                <a href="/sold_products" class="block p-2 rounded hover:bg-green-600">💰 {{ t.sold_products }}</a>
+                <a href="/community" class="block p-2 rounded bg-green-600 font-semibold">🌾 Community</a>
+                <a href="/profile" class="block p-2 rounded hover:bg-green-600">👤 {{ t.profile }}</a>
+            </nav>
+            <div class="p-4 border-t border-green-500 space-y-3">
+                <select onchange="window.location='/set_language/'+this.value" class="bg-green-600 text-white border border-green-400 px-2 py-1 rounded text-sm w-full">
+                    <option value="en" {% if current_lang == 'en' %}selected{% endif %}>🇬🇧 English</option>
+                    <option value="hi" {% if current_lang == 'hi' %}selected{% endif %}>🇮🇳 हिन्दी</option>
+                    <option value="kn" {% if current_lang == 'kn' %}selected{% endif %}>🇮🇳 ಕನ್ನಡ</option>
+                </select>
+                <a href="/logout" class="block bg-red-500 text-center p-2 rounded hover:bg-red-600">{{ t.logout }}</a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-y-auto">
+
+            <!-- Top Header -->
+            <div class="bg-white shadow px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+                <div>
+                    <h1 class="text-2xl font-bold text-green-700">🌾 Farmer Community</h1>
+                    <p class="text-gray-500 text-sm">Connect, share knowledge, and grow together</p>
+                </div>
+                <button onclick="document.getElementById('createGroupModal').classList.remove('hidden')"
+                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-semibold">
+                    ➕ Create Group
+                </button>
+            </div>
+
+            <div class="p-8">
+                <!-- Tabs -->
+                <div class="flex border-b mb-6 gap-6">
+                    <button onclick="switchTab('feed')" id="tab-feed" class="pb-2 px-1 text-gray-600 tab-active cursor-pointer">
+                        📰 Feed
+                    </button>
+                    <button onclick="switchTab('groups')" id="tab-groups" class="pb-2 px-1 text-gray-600 cursor-pointer">
+                        👥 My Groups
+                    </button>
+                    <button onclick="switchTab('discover')" id="tab-discover" class="pb-2 px-1 text-gray-600 cursor-pointer">
+                        🔍 Discover Groups
+                    </button>
+                </div>
+
+                <!-- ===== FEED TAB ===== -->
+                <div id="content-feed">
+
+                    <!-- Create Post -->
+                    <div class="bg-white rounded-xl shadow p-6 mb-6">
+                        <form action="/community/post" method="POST" enctype="multipart/form-data">
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0">
+                                    {{ farmer[1][0] | upper }}
+                                </div>
+                                <div class="flex-1">
+                                    <textarea name="content" rows="3" placeholder="Share your farming knowledge, ask questions, or post updates..."
+                                        class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-400 focus:outline-none resize-none"
+                                        required></textarea>
+                                    <div class="flex items-center justify-between mt-3">
+                                        <div class="flex items-center gap-3">
+                                            <label class="flex items-center gap-1 text-gray-500 hover:text-green-600 cursor-pointer text-sm">
+                                                📷 Photo
+                                                <input type="file" name="image" accept="image/*" class="hidden"
+                                                    onchange="this.parentElement.querySelector('span') ? this.parentElement.querySelector('span').textContent = this.files[0].name : this.parentElement.insertAdjacentHTML('beforeend', '<span class=\'text-green-600 text-xs\'>' + this.files[0].name + '</span>')">
+                                            </label>
+                                        </div>
+                                        <button type="submit"
+                                            class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-semibold text-sm">
+                                            Post
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Posts Feed -->
+                    {% if posts %}
+                        {% for post in posts %}
+                        <div class="bg-white rounded-xl shadow p-6 mb-4 post-card fade-in">
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                                    {{ post[5][0] | upper }}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <span class="font-semibold text-gray-800">{{ post[5] }}</span>
+                                            {% if post[7] %}
+                                            <span class="text-gray-400 text-sm ml-2">in <a href="/community/group/{{ post[4] }}" class="text-green-600 hover:underline">{{ post[7] }}</a></span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-gray-400 text-xs">{{ post[3].strftime('%b %d, %Y %I:%M %p') }}</span>
+                                            {% if post[6] == farmer[0] %}
+                                            <form action="/community/delete_post/{{ post[0] }}" method="POST" class="inline"
+                                                onsubmit="return confirm('Delete this post?')">
+                                                <button class="text-red-400 hover:text-red-600 text-xs">🗑</button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-700 mt-2 whitespace-pre-wrap">{{ post[1] }}</p>
+                                    {% if post[2] %}
+                                    <img src="/static/community/{{ post[2] }}" alt="Post image"
+                                        class="mt-3 rounded-lg max-h-96 object-cover w-full">
+                                    {% endif %}
+
+                                    <!-- Actions -->
+                                    <div class="flex items-center gap-6 mt-4 pt-3 border-t">
+                                        <button onclick="toggleLike({{ post[0] }}, this)"
+                                            class="like-btn flex items-center gap-1 text-gray-500 hover:text-red-500 text-sm {{ 'liked' if post[10] else '' }}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="{{ 'currentColor' if post[10] else 'none' }}" stroke="currentColor" stroke-width="1.5">
+                                                <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span class="like-count">{{ post[8] }}</span>
+                                        </button>
+                                        <button onclick="toggleComments({{ post[0] }})"
+                                            class="flex items-center gap-1 text-gray-500 hover:text-green-600 text-sm">
+                                            💬 <span>{{ post[9] }} Comments</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- Comments Section (hidden by default) -->
+                                    <div id="comments-{{ post[0] }}" class="hidden mt-4 pt-3 border-t">
+                                        <div id="comments-list-{{ post[0] }}" class="comment-section space-y-3 mb-3">
+                                            <!-- Loaded via JS -->
+                                        </div>
+                                        <form action="/community/comment/{{ post[0] }}" method="POST" class="flex gap-2">
+                                            <input type="text" name="content" placeholder="Write a comment..."
+                                                class="flex-1 p-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-400 focus:outline-none" required>
+                                            <button type="submit"
+                                                class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700">
+                                                Send
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-16 text-gray-400">
+                            <p class="text-5xl mb-4">🌱</p>
+                            <p class="text-lg">No posts yet. Be the first to share something!</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- ===== MY GROUPS TAB ===== -->
+                <div id="content-groups" class="hidden">
+                    {% if my_groups %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for group in my_groups %}
+                        <a href="/community/group/{{ group[0] }}"
+                            class="bg-white rounded-xl shadow p-6 hover:shadow-lg transition block">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-12 h-12 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xl font-bold">
+                                    {{ group[1][0] | upper }}
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-gray-800">{{ group[1] }}</h3>
+                                    <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{{ group[2] }}</span>
+                                </div>
+                            </div>
+                            <p class="text-gray-500 text-sm mb-3">{{ group[3][:100] if group[3] else 'No description' }}{{ '...' if group[3] and group[3]|length > 100 else '' }}</p>
+                            <div class="text-gray-400 text-xs">👥 {{ group[4] }} members</div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                        <div class="text-center py-16 text-gray-400">
+                            <p class="text-5xl mb-4">👥</p>
+                            <p class="text-lg">You haven't joined any groups yet.</p>
+                            <button onclick="switchTab('discover')" class="mt-4 text-green-600 hover:underline font-semibold">Discover groups →</button>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- ===== DISCOVER GROUPS TAB ===== -->
+                <div id="content-discover" class="hidden">
+                    {% if discover_groups %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for group in discover_groups %}
+                        <div class="bg-white rounded-xl shadow p-6 hover:shadow-lg transition">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-12 h-12 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xl font-bold">
+                                    {{ group[1][0] | upper }}
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-gray-800">{{ group[1] }}</h3>
+                                    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{{ group[2] }}</span>
+                                </div>
+                            </div>
+                            <p class="text-gray-500 text-sm mb-2">{{ group[3][:100] if group[3] else 'No description' }}{{ '...' if group[3] and group[3]|length > 100 else '' }}</p>
+                            <p class="text-gray-400 text-xs mb-3">Created by {{ group[5] }} · 👥 {{ group[4] }} members</p>
+                            <form action="/community/join_group/{{ group[0] }}" method="POST">
+                                <button type="submit"
+                                    class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm font-semibold">
+                                    Join Group
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                        <div class="text-center py-16 text-gray-400">
+                            <p class="text-5xl mb-4">🔍</p>
+                            <p class="text-lg">No groups to discover. Create one!</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Group Modal -->
+    <div id="createGroupModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-green-700">🌾 Create a New Group</h2>
+                <button onclick="document.getElementById('createGroupModal').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <form action="/community/create_group" method="POST">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Group Name *</label>
+                        <input type="text" name="name" required maxlength="150"
+                            class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-400 focus:outline-none"
+                            placeholder="e.g., Organic Farmers Karnataka">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Category</label>
+                        <select name="category" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-400 focus:outline-none">
+                            {% for cat in group_categories %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                        <textarea name="description" rows="3"
+                            class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-400 focus:outline-none resize-none"
+                            placeholder="What is this group about?"></textarea>
+                    </div>
+                </div>
+                <button type="submit"
+                    class="w-full mt-6 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-bold">
+                    Create Group
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            // Hide all content
+            document.getElementById('content-feed').classList.add('hidden');
+            document.getElementById('content-groups').classList.add('hidden');
+            document.getElementById('content-discover').classList.add('hidden');
+
+            // Remove active from all tabs
+            document.getElementById('tab-feed').classList.remove('tab-active');
+            document.getElementById('tab-groups').classList.remove('tab-active');
+            document.getElementById('tab-discover').classList.remove('tab-active');
+
+            // Show selected
+            document.getElementById('content-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('tab-active');
+        }
+
+        async function toggleLike(postId, btn) {
+            const res = await fetch('/community/like/' + postId, { method: 'POST' });
+            const data = await res.json();
+            btn.querySelector('.like-count').textContent = data.like_count;
+            const svg = btn.querySelector('svg');
+            if (data.liked) {
+                btn.classList.add('liked');
+                svg.setAttribute('fill', 'currentColor');
+            } else {
+                btn.classList.remove('liked');
+                svg.setAttribute('fill', 'none');
+            }
+        }
+
+        async function toggleComments(postId) {
+            const section = document.getElementById('comments-' + postId);
+            if (section.classList.contains('hidden')) {
+                section.classList.remove('hidden');
+                await loadComments(postId);
+            } else {
+                section.classList.add('hidden');
+            }
+        }
+
+        async function loadComments(postId) {
+            const container = document.getElementById('comments-list-' + postId);
+            container.innerHTML = '<p class="text-gray-400 text-sm">Loading...</p>';
+            const res = await fetch('/community/comments/' + postId);
+            const comments = await res.json();
+
+            if (comments.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-sm">No comments yet. Be the first!</p>';
+                return;
+            }
+
+            container.innerHTML = comments.map(c => `
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        ${c.farmer_name[0].toUpperCase()}
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 flex-1">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-semibold text-sm text-gray-700">${c.farmer_name}</span>
+                            <span class="text-xs text-gray-400">${c.created_at}</span>
+                        </div>
+                        <p class="text-sm text-gray-600">${c.content}</p>
+                    </div>
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+</body>
+
+</html>
